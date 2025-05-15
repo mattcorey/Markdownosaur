@@ -18,7 +18,8 @@ public struct Markdownosaur: MarkupVisitor {
   var codeColor = UIColor.systemGray
   var quoteColor = UIColor.systemGray
   var linkColor = UIColor.link // Warning: If you aim to use the markdown string in a UITextView, the link color is determined by its tintColor.
-  let listLines: UInt = 1
+  var listLeftMargin: CGFloat = 15.0
+  let listLines: UInt = 2
   let paragraphLines: UInt = 2
   let codeLines: UInt = 1
   
@@ -144,9 +145,9 @@ public struct Markdownosaur: MarkupVisitor {
       
       let listItemParagraphStyle = NSMutableParagraphStyle()
       
-      let baseLeftMargin: CGFloat = 15.0
+      let baseLeftMargin = listLeftMargin
       let leftMarginOffset = baseLeftMargin + (20.0 * CGFloat(unorderedList.listDepth))
-      let spacingFromIndex: CGFloat = 8.0
+      let spacingFromIndex: CGFloat = 5.0
       let bulletWidth = ceil(NSAttributedString(string: "•", attributes: [.font: font]).size().width)
       let firstTabLocation = leftMarginOffset + bulletWidth
       let secondTabLocation = firstTabLocation + spacingFromIndex
@@ -199,14 +200,14 @@ public struct Markdownosaur: MarkupVisitor {
       let listItemParagraphStyle = NSMutableParagraphStyle()
       
       // Implement a base amount to be spaced from the left side at all times to better visually differentiate it as a list
-      let baseLeftMargin: CGFloat = 15.0
+      let baseLeftMargin = listLeftMargin
       let leftMarginOffset = baseLeftMargin + (20.0 * CGFloat(orderedList.listDepth))
       
       // Grab the highest number to be displayed and measure its width (yes normally some digits are wider than others but since we're using the numeral mono font all will be the same width in this case)
       let highestNumberInList = orderedList.childCount
       let numeralColumnWidth = ceil(NSAttributedString(string: "\(highestNumberInList).", attributes: [.font: monospacedDigitFont]).size().width)
       
-      let spacingFromIndex: CGFloat = 8.0
+      let spacingFromIndex: CGFloat = 5.0
       let firstTabLocation = leftMarginOffset + numeralColumnWidth
       let secondTabLocation = firstTabLocation + spacingFromIndex
       
@@ -430,14 +431,16 @@ extension NSAttributedString {
 
 extension String {
   /// Creates and returns a markdown formatted string.
-  func markdownString(alignment: NSTextAlignment = .natural, textColor: UIColor = .label, codeColor: UIColor = .systemGray, quoteColor: UIColor = .systemGray, linkColor: UIColor = .link) -> NSAttributedString {
-    let document = Document(parsing: self)
+  func markdownString(alignment: NSTextAlignment = .natural, textColor: UIColor = .label, codeColor: UIColor = .systemGray, quoteColor: UIColor = .systemGray, linkColor: UIColor = .link, listLeftMargin: CGFloat = 15.0) -> NSAttributedString {
+    let string = self.replacingOccurrences(of: #"\"#, with: #"\\"#)
+    let document = Document(parsing: string)
     
     var markdownosaur = Markdownosaur()
     markdownosaur.textColor = textColor
     markdownosaur.codeColor = codeColor
     markdownosaur.quoteColor = quoteColor
     markdownosaur.linkColor = linkColor
+    markdownosaur.listLeftMargin = listLeftMargin
     
     let attributedString = markdownosaur.attributedString(from: document)
     
@@ -452,5 +455,16 @@ extension String {
     }
     
     return attributedString
+  }
+  
+  var markdownRemoved: String
+  {
+    let replacements = [
+      ("*", "")
+    ]
+    
+    return replacements.reduce(self) { string, replacement in
+      string.replacingOccurrences(of: replacement.0, with: replacement.1)
+    }
   }
 }
